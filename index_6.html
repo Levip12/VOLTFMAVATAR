@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VoltFM — Avatar Builder</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Reset & Tokens ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --volt:       #FF6B00;
+      --volt-glow:  #FF6B0033;
+      --bg:         #080810;
+      --surface:    #10101C;
+      --surface2:   #18182A;
+      --border:     #ffffff12;
+      --text:       #F0F0FF;
+      --muted:      #7A7A99;
+      --radius:     16px;
+      --radius-sm:  10px;
+      --font-head:  'Syne', sans-serif;
+      --font-body:  'DM Sans', sans-serif;
+    }
+
+    html, body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Background grain + glow ────────────────────────────── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 20% -10%, #FF6B0018 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 85% 110%, #6A1B9A18 0%, transparent 60%);
+      pointer-events: none;
+    }
+    body::after {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      opacity: .4;
+      pointer-events: none;
+    }
+
+    /* ── Nav ────────────────────────────────────────────────── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 40px;
+      background: rgba(8,8,16,.8);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
+    .logo {
+      display: flex; align-items: center; gap: 10px;
+      font-family: var(--font-head); font-size: 1.4rem; font-weight: 800;
+      letter-spacing: -0.5px; color: var(--text); text-decoration: none;
+    }
+    .logo-bolt {
+      width: 34px; height: 34px;
+      background: var(--volt);
+      clip-path: polygon(60% 0%, 40% 45%, 65% 45%, 30% 100%, 55% 55%, 30% 55%);
+      filter: drop-shadow(0 0 8px #FF6B0088);
+    }
+    .logo span { color: var(--volt); }
+
+    .nav-right { display: flex; align-items: center; gap: 14px; }
+
+    #login-btn {
+      display: flex; align-items: center; gap: 8px;
+      padding: 9px 20px; border-radius: 999px;
+      background: #5865F2; color: #fff;
+      font-family: var(--font-body); font-size: .9rem; font-weight: 500;
+      border: none; cursor: pointer;
+      transition: transform .15s, box-shadow .15s;
+    }
+    #login-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 18px #5865F255; }
+    #login-btn svg { width:18px; height:18px; fill: currentColor; }
+
+    #user-chip {
+      display: none; align-items: center; gap: 10px;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 999px; padding: 6px 16px 6px 8px;
+    }
+    #user-chip.visible { display: flex; }
+    #user-avatar-img {
+      width: 30px; height: 30px; border-radius: 50%;
+      border: 2px solid var(--volt);
+    }
+    #user-name { font-size: .9rem; font-weight: 500; }
+
+    #logout-btn {
+      background: none; border: 1px solid var(--border); color: var(--muted);
+      padding: 8px 16px; border-radius: 999px; font-size: .85rem;
+      cursor: pointer; transition: border-color .15s, color .15s;
+    }
+    #logout-btn:hover { border-color: var(--volt); color: var(--volt); }
+
+    /* ── Hero ───────────────────────────────────────────────── */
+    .hero {
+      position: relative; z-index: 1;
+      text-align: center; padding: 64px 24px 32px;
+    }
+    .hero-tag {
+      display: inline-block; margin-bottom: 16px;
+      background: var(--volt-glow); border: 1px solid var(--volt);
+      color: var(--volt); border-radius: 999px;
+      padding: 4px 14px; font-size: .8rem; font-weight: 600; letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    h1 {
+      font-family: var(--font-head); font-size: clamp(2.2rem, 6vw, 4rem);
+      font-weight: 800; line-height: 1.1; letter-spacing: -1.5px;
+      margin-bottom: 12px;
+    }
+    h1 em { font-style: normal; color: var(--volt); }
+    .hero-sub { color: var(--muted); font-size: 1.05rem; max-width: 480px; margin: 0 auto; }
+
+    /* ── Login wall ─────────────────────────────────────────── */
+    #login-wall {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 20px; padding: 48px 24px 80px;
+    }
+    .login-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 40px 48px;
+      text-align: center; max-width: 420px; width: 100%;
+    }
+    .login-card h2 { font-family: var(--font-head); font-size: 1.5rem; margin-bottom: 8px; }
+    .login-card p { color: var(--muted); margin-bottom: 28px; font-size: .95rem; }
+    .login-big-btn {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      width: 100%; padding: 14px; border-radius: var(--radius-sm);
+      background: #5865F2; color: #fff; font-size: 1rem; font-weight: 600;
+      border: none; cursor: pointer;
+      transition: transform .15s, box-shadow .15s;
+    }
+    .login-big-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 24px #5865F255; }
+    .login-big-btn svg { width: 22px; height: 22px; fill: currentColor; }
+
+    /* ── Builder ────────────────────────────────────────────── */
+    #builder {
+      display: none; position: relative; z-index: 1;
+      max-width: 1280px; margin: 0 auto; padding: 0 24px 80px;
+    }
+    #builder.visible { display: block; }
+
+    .builder-grid {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 28px;
+      align-items: start;
+    }
+
+    /* ── Preview panel ──────────────────────────────────────── */
+    .preview-panel {
+      position: sticky; top: 90px;
+    }
+    .preview-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden;
+    }
+    .preview-top {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 20px; border-bottom: 1px solid var(--border);
+    }
+    .preview-top h3 { font-family: var(--font-head); font-size: 1rem; font-weight: 700; }
+    .preview-badge {
+      background: var(--volt-glow); border: 1px solid var(--volt);
+      color: var(--volt); font-size: .72rem; font-weight: 600;
+      padding: 2px 10px; border-radius: 999px; text-transform: uppercase; letter-spacing: .5px;
+    }
+    .avatar-stage {
+      display: flex; align-items: center; justify-content: center;
+      padding: 32px; min-height: 320px;
+    }
+    .avatar-canvas {
+      width: 220px; height: 220px;
+      border-radius: 50%;
+      border: 3px solid var(--border);
+      box-shadow: 0 0 40px rgba(0,0,0,.5);
+      transition: all .3s ease;
+      position: relative; overflow: hidden;
+    }
+
+    .preview-actions {
+      display: flex; gap: 10px; padding: 16px 20px;
+      border-top: 1px solid var(--border);
+    }
+    .btn-primary {
+      flex: 1; padding: 12px; border-radius: var(--radius-sm);
+      background: var(--volt); color: #fff;
+      font-family: var(--font-body); font-size: .9rem; font-weight: 600;
+      border: none; cursor: pointer;
+      transition: transform .15s, box-shadow .15s;
+    }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 16px var(--volt-glow); }
+    .btn-secondary {
+      padding: 12px 16px; border-radius: var(--radius-sm);
+      background: transparent; color: var(--text);
+      font-family: var(--font-body); font-size: .9rem; font-weight: 500;
+      border: 1px solid var(--border); cursor: pointer;
+      transition: border-color .15s;
+    }
+    .btn-secondary:hover { border-color: var(--volt); }
+
+    /* ── Customizer panels ──────────────────────────────────── */
+    .customizer { display: flex; flex-direction: column; gap: 16px; }
+
+    .section-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden;
+    }
+    .section-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 20px; cursor: pointer;
+      user-select: none;
+      border-bottom: 1px solid transparent;
+      transition: border-color .2s;
+    }
+    .section-header.open { border-color: var(--border); }
+    .section-title {
+      display: flex; align-items: center; gap: 10px;
+      font-family: var(--font-head); font-size: .95rem; font-weight: 700;
+    }
+    .section-icon {
+      width: 30px; height: 30px; border-radius: 8px;
+      background: var(--surface2); display: flex; align-items: center; justify-content: center;
+      font-size: 1rem;
+    }
+    .section-chevron {
+      color: var(--muted); font-size: .8rem;
+      transition: transform .2s;
+    }
+    .section-header.open .section-chevron { transform: rotate(180deg); }
+    .section-body {
+      display: none; padding: 16px 20px;
+    }
+    .section-body.open { display: block; }
+
+    /* ── Color swatches ─────────────────────────────────────── */
+    .swatches {
+      display: flex; flex-wrap: wrap; gap: 10px;
+    }
+    .swatch {
+      width: 36px; height: 36px; border-radius: 50%;
+      border: 3px solid transparent;
+      cursor: pointer; transition: transform .15s, border-color .15s;
+      position: relative;
+    }
+    .swatch:hover { transform: scale(1.15); }
+    .swatch.active {
+      border-color: #fff;
+      box-shadow: 0 0 0 2px var(--volt);
+    }
+    .swatch-check {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-size: .8rem; opacity: 0;
+      text-shadow: 0 1px 3px #0008;
+    }
+    .swatch.active .swatch-check { opacity: 1; }
+
+    /* ── Part chips ─────────────────────────────────────────── */
+    .chips {
+      display: flex; flex-wrap: wrap; gap: 8px;
+    }
+    .chip {
+      display: flex; align-items: center; gap: 6px;
+      padding: 8px 14px; border-radius: var(--radius-sm);
+      background: var(--surface2); border: 1px solid var(--border);
+      font-size: .85rem; cursor: pointer;
+      transition: background .15s, border-color .15s, transform .1s;
+    }
+    .chip:hover { background: var(--surface); transform: translateY(-1px); }
+    .chip.active {
+      background: var(--volt-glow); border-color: var(--volt); color: var(--volt);
+    }
+    .chip-emoji { font-size: 1.1rem; }
+
+    /* ── Toast ──────────────────────────────────────────────── */
+    #toast {
+      position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(80px);
+      background: var(--surface2); border: 1px solid var(--border);
+      color: var(--text); padding: 12px 24px; border-radius: 999px;
+      font-size: .9rem; z-index: 999;
+      transition: transform .3s cubic-bezier(.34,1.56,.64,1);
+      white-space: nowrap;
+    }
+    #toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* ── Responsive ─────────────────────────────────────────── */
+    @media (max-width: 768px) {
+      nav { padding: 14px 18px; }
+      .builder-grid { grid-template-columns: 1fr; }
+      .preview-panel { position: static; }
+      h1 { font-size: 2rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Navigation ─────────────────────────────────────── -->
+<nav>
+  <a href="/" class="logo">
+    <div class="logo-bolt"></div>
+    Volt<span>FM</span>
+  </a>
+  <div class="nav-right">
+    <div id="user-chip">
+      <img id="user-avatar-img" src="" alt="avatar" />
+      <span id="user-name"></span>
+      <button id="logout-btn" onclick="logout()">Uitloggen</button>
+    </div>
+    <button id="login-btn" onclick="loginWithDiscord()">
+      <svg viewBox="0 0 71 55"><path d="M60.1 4.9A58.5 58.5 0 0 0 45.5.4a.22.22 0 0 0-.23.11 40.8 40.8 0 0 0-1.8 3.7 54 54 0 0 0-16.2 0A37.3 37.3 0 0 0 25.4.5a.23.23 0 0 0-.23-.11A58.3 58.3 0 0 0 10.5 4.9a.21.21 0 0 0-.1.08C1.58 17.8-.95 30.4.3 42.8a.24.24 0 0 0 .09.17 58.8 58.8 0 0 0 17.7 8.96.23.23 0 0 0 .25-.09 42 42 0 0 0 3.62-5.9.23.23 0 0 0-.12-.31 38.7 38.7 0 0 1-5.53-2.63.23.23 0 0 1-.02-.38c.37-.28.74-.57 1.1-.86a.22.22 0 0 1 .23-.03c11.6 5.3 24.14 5.3 35.6 0a.22.22 0 0 1 .23.03c.35.3.73.58 1.1.86a.23.23 0 0 1-.02.38 36.4 36.4 0 0 1-5.54 2.63.23.23 0 0 0-.12.31 47.1 47.1 0 0 0 3.62 5.9.22.22 0 0 0 .24.08 58.6 58.6 0 0 0 17.72-8.96.23.23 0 0 0 .09-.16c1.48-15.3-2.48-28.6-10.5-40.4a.18.18 0 0 0-.09-.09ZM23.7 35.1c-3.5 0-6.38-3.21-6.38-7.15s2.83-7.15 6.38-7.15c3.58 0 6.43 3.24 6.38 7.15 0 3.94-2.84 7.15-6.38 7.15Zm23.6 0c-3.5 0-6.38-3.21-6.38-7.15s2.83-7.15 6.38-7.15c3.58 0 6.43 3.24 6.38 7.15 0 3.94-2.8 7.15-6.38 7.15Z"/></svg>
+      Login met Discord
+    </button>
+  </div>
+</nav>
+
+<!-- ── Hero ───────────────────────────────────────────── -->
+<header class="hero">
+  <div class="hero-tag">⚡ Avatar Builder</div>
+  <h1>Maak jouw<br/><em>VoltFM</em> avatar</h1>
+  <p class="hero-sub">Stel jouw unieke avatar samen en laat zien wie jij bent in de VoltFM community.</p>
+</header>
+
+<!-- ── Login wall ─────────────────────────────────────── -->
+<section id="login-wall">
+  <div class="login-card">
+    <h2>Inloggen vereist</h2>
+    <p>Verbind je Discord account om jouw avatar te maken en op te slaan in de VoltFM community.</p>
+    <button class="login-big-btn" onclick="loginWithDiscord()">
+      <svg viewBox="0 0 71 55"><path d="M60.1 4.9A58.5 58.5 0 0 0 45.5.4a.22.22 0 0 0-.23.11 40.8 40.8 0 0 0-1.8 3.7 54 54 0 0 0-16.2 0A37.3 37.3 0 0 0 25.4.5a.23.23 0 0 0-.23-.11A58.3 58.3 0 0 0 10.5 4.9a.21.21 0 0 0-.1.08C1.58 17.8-.95 30.4.3 42.8a.24.24 0 0 0 .09.17 58.8 58.8 0 0 0 17.7 8.96.23.23 0 0 0 .25-.09 42 42 0 0 0 3.62-5.9.23.23 0 0 0-.12-.31 38.7 38.7 0 0 1-5.53-2.63.23.23 0 0 1-.02-.38c.37-.28.74-.57 1.1-.86a.22.22 0 0 1 .23-.03c11.6 5.3 24.14 5.3 35.6 0a.22.22 0 0 1 .23.03c.35.3.73.58 1.1.86a.23.23 0 0 1-.02.38 36.4 36.4 0 0 1-5.54 2.63.23.23 0 0 0-.12.31 47.1 47.1 0 0 0 3.62 5.9.22.22 0 0 0 .24.08 58.6 58.6 0 0 0 17.72-8.96.23.23 0 0 0 .09-.16c1.48-15.3-2.48-28.6-10.5-40.4a.18.18 0 0 0-.09-.09ZM23.7 35.1c-3.5 0-6.38-3.21-6.38-7.15s2.83-7.15 6.38-7.15c3.58 0 6.43 3.24 6.38 7.15 0 3.94-2.84 7.15-6.38 7.15Zm23.6 0c-3.5 0-6.38-3.21-6.38-7.15s2.83-7.15 6.38-7.15c3.58 0 6.43 3.24 6.38 7.15 0 3.94-2.8 7.15-6.38 7.15Z"/></svg>
+      Doorgaan met Discord
+    </button>
+  </div>
+</section>
+
+<!-- ── Avatar Builder ─────────────────────────────────── -->
+<main id="builder">
+  <div class="builder-grid">
+
+    <!-- Left: Customizer -->
+    <div class="customizer" id="customizer"></div>
+
+    <!-- Right: Preview -->
+    <div class="preview-panel">
+      <div class="preview-card">
+        <div class="preview-top">
+          <h3>Jouw Avatar</h3>
+          <span class="preview-badge">Live preview</span>
+        </div>
+        <div class="avatar-stage">
+          <canvas id="avatar-canvas" class="avatar-canvas" width="440" height="440"></canvas>
+        </div>
+        <div class="preview-actions">
+          <button class="btn-primary" onclick="downloadAvatar()">⬇ Downloaden</button>
+          <button class="btn-secondary" onclick="randomize()">🎲 Random</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<!-- ── Toast ──────────────────────────────────────────── -->
+<div id="toast"></div>
+
+<!-- ── Scripts ───────────────────────────────────────── -->
+<script>
+// ─── Config (inline from data.js for single-file deploy) ──────────────────
+const DISCORD_CLIENT_ID = "YOUR_DISCORD_CLIENT_ID_HERE"; // ← Vervang dit!
+const REDIRECT_URI = window.location.origin + "/callback.html";
+
+const SKIN_TONES  = [
+  {id:"s1",color:"#FDDBB4"},{id:"s2",color:"#E8B98A"},
+  {id:"s3",color:"#C68642"},{id:"s4",color:"#8D5524"},{id:"s5",color:"#4A2912"}
+];
+const HAIR_STYLES = [
+  {id:"h0",label:"Kaal",icon:"🧑"},{id:"h1",label:"Kort",icon:"💇"},
+  {id:"h2",label:"Pompadour",icon:"🕺"},{id:"h3",label:"Krullen",icon:"👩‍🦱"},
+  {id:"h4",label:"Lang",icon:"👱‍♀️"},{id:"h5",label:"Staart",icon:"🎀"},
+  {id:"h6",label:"Afro",icon:"✨"}
+];
+const HAIR_COLORS = [
+  {id:"hc1",color:"#D4A017"},{id:"hc2",color:"#6B3A2A"},
+  {id:"hc3",color:"#1C1C1C"},{id:"hc4",color:"#A0220D"},
+  {id:"hc5",color:"#9E9E9E"},{id:"hc6",color:"#F0F0F0"},
+  {id:"hc7",color:"#1E6FA5"},{id:"hc8",color:"#E91E8C"},
+  {id:"hc9",color:"#2E7D32"},{id:"hc10",color:"#7B1FA2"}
+];
+const EYE_STYLES  = [
+  {id:"e1",label:"Normaal",icon:"👀"},{id:"e2",label:"Blij",icon:"😊"},
+  {id:"e3",label:"Cool",icon:"😎"},{id:"e4",label:"Knipoog",icon:"😉"},
+  {id:"e5",label:"Ster",icon:"🌟"}
+];
+const ACCESSORIES = [
+  {id:"a0",label:"Geen",icon:"❌"},{id:"a1",label:"Zonnebril",icon:"🕶️"},
+  {id:"a2",label:"Bril",icon:"🤓"},{id:"a3",label:"Koptelefoon",icon:"🎧"},
+  {id:"a4",label:"Pet",icon:"🧢"},{id:"a5",label:"Kroon",icon:"👑"},
+  {id:"a6",label:"Hoed",icon:"🎩"},{id:"a7",label:"Microfoon",icon:"🎤"}
+];
+const OUTFITS = [
+  {id:"o1",label:"Casual",icon:"👕",color:"#455A64"},
+  {id:"o2",label:"Pak",icon:"🤵",color:"#263238"},
+  {id:"o3",label:"Hoodie",icon:"🧥",color:"#1976D2"},
+  {id:"o4",label:"VoltFM",icon:"⚡",color:"#FF6B00"},
+  {id:"o5",label:"DJ Set",icon:"🎧",color:"#6A1B9A"},
+  {id:"o6",label:"Sportief",icon:"👟",color:"#00897B"}
+];
+const BACKGROUNDS = [
+  {id:"bg1",color:"#FF6B00"},{id:"bg2",color:"#6A1B9A"},
+  {id:"bg3",color:"#0D47A1"},{id:"bg4",color:"#1B5E20"},
+  {id:"bg5",color:"#B71C1C"},{id:"bg6",color:"#121212"},
+  {id:"bg7",color:"#00BFA5"},{id:"bg8",color:"#AD1457"},
+  {id:"bg9",color:"#F57F17"},{id:"bg10",color:"#37474F"}
+];
+
+// ─── State ────────────────────────────────────────────────────────────────
+let avatar = {
+  skinTone:   "s1",
+  hairStyle:  "h2",
+  hairColor:  "hc1",
+  eyeStyle:   "e1",
+  accessory:  "a1",
+  outfit:     "o4",
+  background: "bg1"
+};
+let user = null;
+
+// ─── Discord Auth ──────────────────────────────────────────────────────────
+function loginWithDiscord() {
+  const state = Math.random().toString(36).slice(2);
+  sessionStorage.setItem("oauth_state", state);
+  const url = `https://discord.com/api/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=token&scope=identify&state=${state}`;
+  window.location.href = url;
+}
+
+function logout() {
+  localStorage.removeItem("voltfm_user");
+  localStorage.removeItem("voltfm_avatar");
+  user = null;
+  showLoginWall();
+  showToast("👋 Uitgelogd!");
+}
+
+function loadUser() {
+  const stored = localStorage.getItem("voltfm_user");
+  if (stored) {
+    user = JSON.parse(stored);
+    return true;
+  }
+  return false;
+}
+
+function loadSavedAvatar() {
+  const stored = localStorage.getItem("voltfm_avatar");
+  if (stored) { avatar = { ...avatar, ...JSON.parse(stored) }; }
+}
+
+// ─── UI toggle ────────────────────────────────────────────────────────────
+function showBuilder() {
+  document.getElementById("login-wall").style.display = "none";
+  document.getElementById("builder").classList.add("visible");
+  document.getElementById("user-chip").classList.add("visible");
+  document.getElementById("login-btn").style.display = "none";
+  document.getElementById("user-name").textContent = user.username;
+  document.getElementById("user-avatar-img").src =
+    user.avatar
+      ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=64`
+      : `https://cdn.discordapp.com/embed/avatars/${parseInt(user.discriminator || "0") % 5}.png`;
+}
+
+function showLoginWall() {
+  document.getElementById("login-wall").style.display = "flex";
+  document.getElementById("builder").classList.remove("visible");
+  document.getElementById("user-chip").classList.remove("visible");
+  document.getElementById("login-btn").style.display = "flex";
+}
+
+// ─── Sections builder ─────────────────────────────────────────────────────
+function buildCustomizer() {
+  const c = document.getElementById("customizer");
+  c.innerHTML = "";
+
+  const sections = [
+    {
+      icon: "🎨", title: "Achtergrond",
+      content: swatchRow(BACKGROUNDS, "background")
+    },
+    {
+      icon: "🖐️", title: "Huidtint",
+      content: swatchRow(SKIN_TONES, "skinTone")
+    },
+    {
+      icon: "💇", title: "Haarstijl",
+      content: chipRow(HAIR_STYLES, "hairStyle")
+    },
+    {
+      icon: "🎨", title: "Haarkleur",
+      content: swatchRow(HAIR_COLORS, "hairColor")
+    },
+    {
+      icon: "👁️", title: "Ogen",
+      content: chipRow(EYE_STYLES, "eyeStyle")
+    },
+    {
+      icon: "🕶️", title: "Accessoire",
+      content: chipRow(ACCESSORIES, "accessory")
+    },
+    {
+      icon: "👕", title: "Outfit",
+      content: outfitRow()
+    }
+  ];
+
+  sections.forEach((s, i) => {
+    const card = document.createElement("div");
+    card.className = "section-card";
+    card.innerHTML = `
+      <div class="section-header ${i < 2 ? 'open':''}" onclick="toggleSection(this)">
+        <div class="section-title">
+          <div class="section-icon">${s.icon}</div>
+          ${s.title}
+        </div>
+        <span class="section-chevron">▼</span>
+      </div>
+      <div class="section-body ${i < 2 ? 'open':''}">
+        ${s.content}
+      </div>
+    `;
+    c.appendChild(card);
+  });
+}
+
+function toggleSection(header) {
+  header.classList.toggle("open");
+  header.nextElementSibling.classList.toggle("open");
+}
+
+function swatchRow(arr, key) {
+  return `<div class="swatches">${arr.map(item => `
+    <div class="swatch ${avatar[key] === item.id ? 'active' : ''}"
+         style="background:${item.color}"
+         onclick="pick('${key}','${item.id}')">
+      <div class="swatch-check">✓</div>
+    </div>`).join("")}</div>`;
+}
+
+function chipRow(arr, key) {
+  return `<div class="chips">${arr.map(item => `
+    <div class="chip ${avatar[key] === item.id ? 'active' : ''}"
+         onclick="pick('${key}','${item.id}')">
+      <span class="chip-emoji">${item.icon}</span>
+      ${item.label}
+    </div>`).join("")}</div>`;
+}
+
+function outfitRow() {
+  return `<div class="chips">${OUTFITS.map(item => `
+    <div class="chip ${avatar.outfit === item.id ? 'active' : ''}"
+         onclick="pick('outfit','${item.id}')">
+      <span class="chip-emoji">${item.icon}</span>
+      ${item.label}
+    </div>`).join("")}</div>`;
+}
+
+function pick(key, id) {
+  avatar[key] = id;
+  buildCustomizer();
+  renderAvatar();
+  localStorage.setItem("voltfm_avatar", JSON.stringify(avatar));
+}
+
+// ─── Canvas Avatar Renderer ────────────────────────────────────────────────
+function renderAvatar() {
+  const canvas = document.getElementById("avatar-canvas");
+  const ctx    = canvas.getContext("2d");
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  const skin  = SKIN_TONES.find(s => s.id === avatar.skinTone)?.color  || "#FDDBB4";
+  const hairC = HAIR_COLORS.find(h => h.id === avatar.hairColor)?.color || "#D4A017";
+  const bgC   = BACKGROUNDS.find(b => b.id === avatar.background)?.color|| "#FF6B00";
+  const outfitData = OUTFITS.find(o => o.id === avatar.outfit);
+  const outC  = outfitData?.color || "#455A64";
+
+  // ── Background circle ──
+  ctx.save();
+  ctx.beginPath(); ctx.arc(W/2, H/2, W/2, 0, Math.PI*2);
+  ctx.clip();
+
+  // gradient bg
+  const grd = ctx.createRadialGradient(W/2, H*0.3, 0, W/2, H/2, W/2);
+  grd.addColorStop(0, lighten(bgC, 30));
+  grd.addColorStop(1, bgC);
+  ctx.fillStyle = grd; ctx.fillRect(0,0,W,H);
+
+  // subtle grid pattern
+  ctx.strokeStyle = "rgba(255,255,255,0.06)"; ctx.lineWidth = 1;
+  for(let x=0;x<W;x+=30) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+  for(let y=0;y<H;y+=30) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+  ctx.restore();
+
+  // ── Clip to circle for everything ──
+  ctx.save();
+  ctx.beginPath(); ctx.arc(W/2, H/2, W/2, 0, Math.PI*2); ctx.clip();
+
+  // ── Body / Outfit ──
+  const bodyY = H * 0.68;
+  ctx.fillStyle = darken(outC, 20);
+  ctx.beginPath();
+  ctx.ellipse(W/2, bodyY + H*0.15, W*0.42, H*0.32, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // shirt / inner
+  ctx.fillStyle = outC;
+  ctx.beginPath();
+  ctx.ellipse(W/2, bodyY + H*0.22, W*0.28, H*0.26, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // VoltFM logo on outfit if selected
+  if(avatar.outfit === "o4") {
+    ctx.fillStyle = "#fff";
+    ctx.font = `bold ${W*0.08}px Syne, sans-serif`;
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("⚡", W/2, bodyY + H*0.22);
+  }
+
+  // ── Neck ──
+  ctx.fillStyle = skin;
+  ctx.beginPath();
+  ctx.roundRect(W/2 - W*0.08, H*0.58, W*0.16, H*0.14, [8]);
+  ctx.fill();
+
+  // ── Head ──
+  ctx.fillStyle = skin;
+  ctx.beginPath();
+  ctx.ellipse(W/2, H*0.38, W*0.24, H*0.27, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // ── Hair ──
+  drawHair(ctx, W, H, hairC, avatar.hairStyle);
+
+  // ── Eyes ──
+  drawEyes(ctx, W, H, avatar.eyeStyle);
+
+  // ── Nose ──
+  ctx.fillStyle = darken(skin, 10);
+  ctx.beginPath();
+  ctx.ellipse(W/2, H*0.42, W*0.03, H*0.025, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // ── Mouth ──
+  ctx.strokeStyle = "#333"; ctx.lineWidth = W*0.012; ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.arc(W/2, H*0.475, W*0.07, 0.15, Math.PI - 0.15);
+  ctx.stroke();
+
+  // ── Accessory ──
+  drawAccessory(ctx, W, H, avatar.accessory);
+
+  ctx.restore();
+
+  // ── VoltFM watermark ──
+  ctx.fillStyle = "rgba(255,255,255,0.55)";
+  ctx.font = `600 ${W*0.046}px Syne, sans-serif`;
+  ctx.textAlign = "right"; ctx.textBaseline = "bottom";
+  ctx.fillText("VoltFM", W - W*0.05, H - H*0.04);
+}
+
+function drawHair(ctx, W, H, color, styleId) {
+  ctx.fillStyle = color;
+  const cx = W/2, ty = H*0.14;
+  if(styleId === "h0") return; // bald
+
+  if(styleId === "h1") { // kort
+    ctx.beginPath(); ctx.ellipse(cx, ty + H*0.11, W*0.24, H*0.175, 0, Math.PI, 0);
+    ctx.fill();
+    ctx.beginPath(); ctx.rect(cx - W*0.24, ty + H*0.09, W*0.48, H*0.04); ctx.fill();
+  } else if(styleId === "h2") { // pompadour
+    ctx.beginPath(); ctx.ellipse(cx, ty + H*0.085, W*0.24, H*0.175, 0, Math.PI, 0); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(cx - W*0.02, ty + H*0.01, W*0.14, H*0.1, -0.3, Math.PI, 0); ctx.fill();
+  } else if(styleId === "h3") { // krullen
+    for(let i=-2;i<=2;i++) {
+      ctx.beginPath(); ctx.arc(cx + i*W*0.085, ty+H*0.08, W*0.07, Math.PI, 0); ctx.fill();
+    }
+    ctx.beginPath(); ctx.rect(cx-W*0.24, ty+H*0.06, W*0.48, H*0.05); ctx.fill();
+  } else if(styleId === "h4") { // lang
+    ctx.beginPath(); ctx.ellipse(cx, ty+H*0.1, W*0.26, H*0.18, 0, Math.PI, 0); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(cx-W*0.255, ty+H*0.08, W*0.11, H*0.38, [0,0,20,20]); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(cx+W*0.145, ty+H*0.08, W*0.11, H*0.38, [0,0,20,20]); ctx.fill();
+  } else if(styleId === "h5") { // staart
+    ctx.beginPath(); ctx.ellipse(cx, ty+H*0.085, W*0.24, H*0.175, 0, Math.PI, 0); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(cx+W*0.26, H*0.25, W*0.04, H*0.1, 0.5, 0, Math.PI*2); ctx.fill();
+  } else if(styleId === "h6") { // afro
+    ctx.beginPath(); ctx.ellipse(cx, H*0.25, W*0.31, H*0.23, 0, 0, Math.PI*2); ctx.fill();
+  }
+}
+
+function drawEyes(ctx, W, H, styleId) {
+  const ex1 = W*0.385, ex2 = W*0.615, ey = H*0.38;
+
+  if(styleId === "e3") { // zonnebril (cool)
+    ctx.fillStyle="#111";
+    [[ex1,ey],[ex2,ey]].forEach(([x,y]) => {
+      ctx.beginPath(); ctx.roundRect(x-W*0.095, y-H*0.045, W*0.19, H*0.09, [W*0.04]); ctx.fill();
+    });
+    ctx.fillStyle="#333";
+    ctx.beginPath(); ctx.roundRect(ex1+W*0.095, ey-H*0.015, W*0.045, H*0.03, [4]); ctx.fill();
+    ctx.strokeStyle="#444"; ctx.lineWidth=W*0.01;
+    ctx.beginPath(); ctx.moveTo(ex1-W*0.095, ey); ctx.lineTo(ex1-W*0.18, ey-H*0.025); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(ex2+W*0.095, ey); ctx.lineTo(ex2+W*0.18, ey-H*0.025); ctx.stroke();
+    return;
+  }
+
+  if(styleId === "e4") { // knipoog
+    ctx.fillStyle="#222";
+    ctx.beginPath(); ctx.arc(ex1, ey, W*0.055, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle="#fff";
+    ctx.beginPath(); ctx.arc(ex1-W*0.015, ey-H*0.012, W*0.018, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle="#222"; ctx.lineWidth=W*0.015; ctx.lineCap="round";
+    ctx.beginPath(); ctx.arc(ex2, ey, W*0.06, Math.PI*0.1, Math.PI*0.9); ctx.stroke();
+    return;
+  }
+
+  if(styleId === "e5") { // sterren
+    ["✦","✦"].forEach((s,i) => {
+      ctx.fillStyle="#FF6B00"; ctx.font=`${W*0.1}px serif`;
+      ctx.textAlign="center"; ctx.textBaseline="middle";
+      ctx.fillText(s, i===0?ex1:ex2, ey);
+    });
+    return;
+  }
+
+  // e1 normaal / e2 blij
+  const isHappy = styleId === "e2";
+  [ex1, ex2].forEach(x => {
+    ctx.fillStyle="#222";
+    ctx.beginPath(); ctx.ellipse(x, ey, W*0.055, H*0.065, 0, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle="#fff";
+    ctx.beginPath(); ctx.arc(x-W*0.018, ey-H*0.018, W*0.02, 0, Math.PI*2); ctx.fill();
+    if(isHappy) {
+      ctx.strokeStyle="#FF6B00"; ctx.lineWidth=W*0.012;
+      ctx.beginPath(); ctx.arc(x, ey+H*0.01, W*0.06, Math.PI+0.2, 0-0.2); ctx.stroke();
+    }
+  });
+}
+
+function drawAccessory(ctx, W, H, styleId) {
+  const cx = W/2, ey = H*0.38;
+
+  if(styleId === "a0") return;
+
+  if(styleId === "a1") { // zonnebril
+    ctx.fillStyle="rgba(20,20,20,0.9)";
+    [[W*0.385, ey],[W*0.615, ey]].forEach(([x,y]) => {
+      ctx.beginPath(); ctx.roundRect(x-W*0.1, y-H*0.05, W*0.2, H*0.1, [W*0.04]); ctx.fill();
+    });
+    ctx.strokeStyle="#111"; ctx.lineWidth=W*0.018;
+    ctx.beginPath(); ctx.moveTo(W*0.485, ey); ctx.lineTo(W*0.515, ey); ctx.stroke();
+    ctx.lineWidth=W*0.012;
+    ctx.beginPath(); ctx.moveTo(W*0.285, ey); ctx.lineTo(W*0.2, ey-H*0.03); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(W*0.715, ey); ctx.lineTo(W*0.8, ey-H*0.03); ctx.stroke();
+  } else if(styleId === "a2") { // bril
+    ctx.strokeStyle="#333"; ctx.lineWidth=W*0.018; ctx.fillStyle="rgba(180,220,255,0.25)";
+    [[W*0.38, ey],[W*0.62, ey]].forEach(([x,y]) => {
+      ctx.beginPath(); ctx.roundRect(x-W*0.1, y-H*0.05, W*0.2, H*0.1, [W*0.03]);
+      ctx.fill(); ctx.stroke();
+    });
+    ctx.beginPath(); ctx.moveTo(W*0.48, ey); ctx.lineTo(W*0.52, ey); ctx.stroke();
+  } else if(styleId === "a3") { // koptelefoon
+    ctx.strokeStyle="#222"; ctx.lineWidth=W*0.045; ctx.lineCap="round";
+    ctx.beginPath(); ctx.arc(cx, H*0.25, W*0.26, Math.PI+0.3, 0-0.3); ctx.stroke();
+    ctx.fillStyle="#333";
+    ctx.beginPath(); ctx.ellipse(cx-W*0.27, H*0.3, W*0.06, H*0.09, 0.2, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(cx+W*0.27, H*0.3, W*0.06, H*0.09, -0.2, 0, Math.PI*2); ctx.fill();
+  } else if(styleId === "a4") { // pet
+    ctx.fillStyle="#1A237E";
+    ctx.beginPath(); ctx.ellipse(cx, H*0.17, W*0.27, H*0.12, 0, Math.PI, 0); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(cx-W*0.05, H*0.175, W*0.32, H*0.06, 0.1, 0.6, Math.PI-0.6); ctx.fill();
+    ctx.fillStyle="#FF6B00"; ctx.font=`bold ${W*0.07}px sans-serif`;
+    ctx.textAlign="center"; ctx.textBaseline="middle";
+    ctx.fillText("V", cx, H*0.19);
+  } else if(styleId === "a5") { // kroon
+    ctx.fillStyle="#F9A825";
+    ctx.beginPath();
+    ctx.moveTo(cx-W*0.2, H*0.16);
+    ctx.lineTo(cx-W*0.2, H*0.09);
+    ctx.lineTo(cx-W*0.08, H*0.14);
+    ctx.lineTo(cx, H*0.07);
+    ctx.lineTo(cx+W*0.08, H*0.14);
+    ctx.lineTo(cx+W*0.2, H*0.09);
+    ctx.lineTo(cx+W*0.2, H*0.16);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle="#E65100";
+    [cx-W*0.13, cx, cx+W*0.13].forEach(x => {
+      ctx.beginPath(); ctx.arc(x, H*0.14, W*0.025, 0, Math.PI*2); ctx.fill();
+    });
+  } else if(styleId === "a6") { // hoed
+    ctx.fillStyle="#212121";
+    ctx.beginPath(); ctx.ellipse(cx, H*0.18, W*0.35, H*0.055, 0, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(cx-W*0.19, H*0.065, W*0.38, H*0.12, [8,8,0,0]); ctx.fill();
+    ctx.fillStyle="#FF6B00"; ctx.fillRect(cx-W*0.19, H*0.155, W*0.38, H*0.022);
+  } else if(styleId === "a7") { // microfoon
+    ctx.fillStyle="#555";
+    ctx.beginPath(); ctx.roundRect(cx+W*0.17, H*0.4, W*0.05, H*0.12, [W*0.025,W*0.025,0,0]); ctx.fill();
+    ctx.fillStyle="#888";
+    ctx.beginPath(); ctx.ellipse(cx+W*0.195, H*0.4, W*0.038, H*0.052, 0, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle="#555"; ctx.lineWidth=W*0.008;
+    ctx.beginPath(); ctx.arc(cx+W*0.195, H*0.4, W*0.047, 0, Math.PI*2); ctx.stroke();
+  }
+}
+
+// ─── Color helpers ────────────────────────────────────────────────────────
+function lighten(hex, pct) { return shadeColor(hex, pct); }
+function darken(hex, pct)  { return shadeColor(hex, -pct); }
+function shadeColor(col, pct) {
+  let r=parseInt(col.slice(1,3),16), g=parseInt(col.slice(3,5),16), b=parseInt(col.slice(5,7),16);
+  r=Math.min(255,Math.max(0,r+pct*2.55|0));
+  g=Math.min(255,Math.max(0,g+pct*2.55|0));
+  b=Math.min(255,Math.max(0,b+pct*2.55|0));
+  return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
+}
+
+// ─── Download ─────────────────────────────────────────────────────────────
+function downloadAvatar() {
+  const canvas = document.getElementById("avatar-canvas");
+  const link = document.createElement("a");
+  link.download = "voltfm-avatar.png";
+  link.href = canvas.toDataURL("image/png");
+  link.click();
+  showToast("✅ Avatar gedownload!");
+}
+
+// ─── Randomize ────────────────────────────────────────────────────────────
+function randomize() {
+  const pick = arr => arr[Math.floor(Math.random()*arr.length)].id;
+  avatar = {
+    skinTone:   pick(SKIN_TONES),
+    hairStyle:  pick(HAIR_STYLES),
+    hairColor:  pick(HAIR_COLORS),
+    eyeStyle:   pick(EYE_STYLES),
+    accessory:  pick(ACCESSORIES),
+    outfit:     pick(OUTFITS),
+    background: pick(BACKGROUNDS)
+  };
+  buildCustomizer();
+  renderAvatar();
+  showToast("🎲 Willekeurige avatar!");
+}
+
+// ─── Toast ────────────────────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 2600);
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────
+if(loadUser()) {
+  loadSavedAvatar();
+  buildCustomizer();
+  showBuilder();
+  renderAvatar();
+} else {
+  showLoginWall();
+}
+</script>
+</body>
+</html>
