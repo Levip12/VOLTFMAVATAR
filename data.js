@@ -4,12 +4,12 @@
 // Maak een Discord app op: https://discord.com/developers/applications
 
 export const DISCORD_CONFIG = {
-  CLIENT_ID: "YOUR_DISCORD_CLIENT_ID_HERE",
+  CLIENT_ID: "1492216788640071781",
   // Zet deze URL in je Discord App onder OAuth2 > Redirects
   REDIRECT_URI:
     typeof window !== "undefined"
       ? `${window.location.origin}/callback.html`
-      : "https://jouw-project.vercel.app/callback.html",
+      : "https://voltfmavatar.vercel.app/callback.html",
   SCOPE: "identify",
 };
 
