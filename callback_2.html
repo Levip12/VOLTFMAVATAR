@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VoltFM — Inloggen...</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --volt: #FF6B00;
+      --bg: #080810;
+      --text: #F0F0FF;
+      --muted: #7A7A99;
+    }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+    }
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background: radial-gradient(ellipse 60% 50% at 50% 50%, #FF6B0015 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .card {
+      text-align: center; padding: 48px 40px;
+      background: #10101C; border: 1px solid #ffffff12;
+      border-radius: 20px; max-width: 380px; width: 90%;
+    }
+    .bolt {
+      width: 48px; height: 48px; margin: 0 auto 20px;
+      background: var(--volt);
+      clip-path: polygon(60% 0%, 40% 45%, 65% 45%, 30% 100%, 55% 55%, 30% 55%);
+      animation: pulse 1.2s ease-in-out infinite;
+      filter: drop-shadow(0 0 12px #FF6B0066);
+    }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.7;transform:scale(.92)} }
+    h2 { font-family: 'Syne', sans-serif; font-size: 1.4rem; font-weight: 800; margin-bottom: 8px; }
+    p  { color: var(--muted); font-size: .9rem; }
+    .error { color: #FF5252; margin-top: 16px; font-size: .85rem; display:none; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="bolt"></div>
+    <h2>Even geduld...</h2>
+    <p>We verwerken jouw Discord login.</p>
+    <p class="error" id="err"></p>
+  </div>
+
+  <script>
+    // Parse fragment token from Discord
+    const hash   = window.location.hash.slice(1);
+    const params = new URLSearchParams(hash);
+    const token  = params.get("access_token");
+    const type   = params.get("token_type");
+    const state  = params.get("state");
+
+    const savedState = sessionStorage.getItem("oauth_state");
+
+    if (!token) {
+      showError("Geen access token ontvangen. Probeer opnieuw.");
+    } else if (state && savedState && state !== savedState) {
+      showError("Ongeldige state parameter. Mogelijke beveiligingsfout.");
+    } else {
+      // Fetch user info from Discord API
+      fetch("https://discord.com/api/users/@me", {
+        headers: { Authorization: `${type} ${token}` }
+      })
+      .then(r => r.json())
+      .then(user => {
+        if(!user.id) throw new Error("Geen gebruikersdata");
+        localStorage.setItem("voltfm_user", JSON.stringify(user));
+        sessionStorage.removeItem("oauth_state");
+        window.location.href = "/index.html";
+      })
+      .catch(err => showError("Kon gebruikersdata niet ophalen: " + err.message));
+    }
+
+    function showError(msg) {
+      document.getElementById("err").textContent = msg;
+      document.getElementById("err").style.display = "block";
+      document.querySelector("h2").textContent = "Oeps!";
+      document.querySelector(".bolt").style.background = "#FF5252";
+    }
+  </script>
+</body>
+</html>
